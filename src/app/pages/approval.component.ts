@@ -22,7 +22,8 @@ import type { RoutePackage } from '../types'
         <mat-tab label="待处理意见"><section class="card comment-list">
           @for (comment of (state$ | async)?.comments || []; track comment.id) {
             <div class="comment"><div class="comment-head"><div><b>{{comment.role}} · {{comment.author}}</b><small>{{comment.segmentId}} · {{comment.id}}</small></div><span>{{comment.status}}</span></div><p>{{comment.content}}</p>
-            <div class="actions"><button mat-stroked-button color="warn" (click)="resolve(comment.id,'已退回')">退回补件</button><button mat-flat-button color="primary" (click)="resolve(comment.id,'已接受')">接受条件</button></div></div>
+            @if (comment.status === '失效重算') { <p class="risk-mid">押运员或编组已变更，该会签失效，待按新运行版本重算。</p> }
+            <div class="actions"><button mat-stroked-button color="warn" [disabled]="comment.status === '失效重算'" (click)="resolve(comment.id,'已退回')">退回补件</button><button mat-flat-button color="primary" [disabled]="comment.status === '失效重算'" (click)="resolve(comment.id,'已接受')">接受条件</button></div></div>
           }
         </section></mat-tab>
         <mat-tab label="发表区段意见"><section class="card form-card">
@@ -50,8 +51,10 @@ export class ApprovalComponent {
   segmentId = 'S-203'
   content = ''
   segments: RouteState['routes'][number]['segments'] = []
-  constructor() { this.state$.subscribe((state) => { this.segments = state.routes.flatMap((route: RoutePackage) => route.segments) }) }
-  addComment() { this.store.dispatch(RouteActions.addComment({ comment: { id: `RV-${Date.now().toString().slice(-4)}`, segmentId: this.segmentId, role: this.role, author: '当前审阅人', content: this.content, status: '待确认' } })); this.content = '' }
+  private orderId = ''
+  private versionNo = 1
+  constructor() { this.state$.subscribe((state) => { this.segments = state.routes.flatMap((route: RoutePackage) => route.segments); this.orderId = state.selectedRouteId; const versions = state.runningVersions[state.selectedRouteId]; this.versionNo = versions?.length ? versions[versions.length - 1].no : 1 }) }
+  addComment() { this.store.dispatch(RouteActions.addComment({ comment: { id: `RV-${Date.now().toString().slice(-4)}`, segmentId: this.segmentId, role: this.role, author: '当前审阅人', content: this.content, status: '待确认', orderId: this.orderId, version: this.versionNo } })); this.content = '' }
   resolve(id: string, status: '已接受' | '已退回') { this.store.dispatch(RouteActions.resolveComment({ id, status })) }
   lockBaseline() { alert('基线已锁定：审批意见、路径版本和原始附件将只读保存。') }
 }

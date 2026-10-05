@@ -46,6 +46,7 @@ import type { RoutePackage } from '../types'
           <mat-divider />
           <h3>强制校验项</h3>
           <p>✓ 罐车编组隔离与押运资质</p><p class="risk-high">! S-203 水源地保护段缺少属地放行函</p><p>✓ 替代路径具备接卸条件</p>
+          @if (haltedCount > 0) { <p class="risk-high">! {{haltedCount}} 个高危段因交接冲突停住放行，待冲突裁决后恢复</p> }
           <button mat-flat-button color="primary" style="width:100%" (click)="createAlternative()">要求补充替代方案</button>
         </aside>
       </div>
@@ -61,8 +62,9 @@ export class WorkspaceComponent implements OnInit {
   readonly columns = ['id', 'cargo', 'route', 'permission', 'score', 'action']
   selectedId = ''
   highRiskCount = 0
+  haltedCount = 0
 
-  constructor() { this.state$.subscribe((state) => { this.selectedId = state.selectedRouteId; this.highRiskCount = state.routes.flatMap((route: RoutePackage) => route.segments).filter((segment: RoutePackage['segments'][number]) => segment.level === '高').length }) }
+  constructor() { this.state$.subscribe((state) => { this.selectedId = state.selectedRouteId; this.highRiskCount = state.routes.flatMap((route: RoutePackage) => route.segments).filter((segment: RoutePackage['segments'][number]) => segment.level === '高').length; this.haltedCount = state.haltedSegmentIds.length }) }
   ngOnInit() { this.refresh() }
   refresh() { this.store.dispatch(RouteActions.loadRoutes()) }
   select(row: RoutePackage) { this.store.dispatch(RouteActions.selectRoute({ id: row.id })) }
